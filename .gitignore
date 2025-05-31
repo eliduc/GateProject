@@ -6,3 +6,5 @@
 
 # Re-ignore all files inside subdirectories
 **/*
+
+gpp.ini
