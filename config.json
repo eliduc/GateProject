@@ -1,0 +1,9 @@
+{
+    "rpi_host": "192.168.2.44",
+    "rpi_port": 22,
+    "rpi_user": "pi",
+    "rpi_password": "Rlg4705916!",
+    "db_log_path": "/home/pi/GP/events.db",
+    "db_faces_path": "/home/pi/GP/people.db",
+    "sqlite_path": "/usr/bin/sqlite3"
+}

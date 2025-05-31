@@ -1,0 +1,8 @@
+# Ignore everything
+**
+
+# Un-ignore only root-level files (no folders or their contents)
+!/*
+
+# Re-ignore all files inside subdirectories
+**/*
