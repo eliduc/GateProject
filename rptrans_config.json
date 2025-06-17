@@ -10,9 +10,14 @@
       "connection": "pi@192.168.2.44",
       "directory": "/home/pi/GP/"
     },
-    "FRB": {
+    "rb5b": {
       "type": "pi",
       "connection": "pi@rb5b",
+      "directory": "/home/pi/GP/"
+    },
+    "rb5c": {
+      "type": "pi",
+      "connection": "pi@rb5c",
       "directory": "/home/pi/GP/"
     },
     "KODI": {
@@ -40,5 +45,6 @@
       "connection": "pi@gp",
       "directory": "/home/pi/CheckGate./"
     }
-  }
+  },
+  "last_local_directory": "C:/work/RaspberryPI/GateProject/United"
 }

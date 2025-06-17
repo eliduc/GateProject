@@ -1,12 +1,13 @@
 #
 # RPTransfer - Universal File Transfer Application
-# Version: 1.4
+# Version: 1.5
 #
 # Recent Improvements:
-# - (v.1.4.1) Corrected the multiple file upload/download freeze error
+# - (v1.5) Added preservation of file sorting when navigating between directories
+# - (v1.5) Added saving/restoring of last PC directory on exit/startup
+# - (v1.4.1) Corrected the multiple file upload/download freeze error
 # - (v1.4) Added show/hide password toggle to the Connection Dialog.
 # - (v1.3) Added "Deauthorize" button to the Device List window for clearing saved credentials.
-
 # - (v1.3) Refined the Device List window's height to dynamically adjust based on the
 #   number of configured devices.
 # - (v1.3) Corrected the scrollbar implementation within the Device List window.
@@ -60,7 +61,11 @@ class Config:
         try:
             if os.path.exists(CONFIG_FILE):
                 with open(CONFIG_FILE, 'r') as f:
-                    return json.load(f)
+                    config = json.load(f)
+                    # Ensure we have the necessary structure
+                    if 'devices' not in config:
+                        config['devices'] = {}
+                    return config
             else:
                 # Default configuration
                 default_config = {
@@ -109,6 +114,26 @@ class Config:
             del config['devices'][name]
             return Config.save_devices(config)
         return False
+    
+    @staticmethod
+    def get_last_local_directory():
+        """Get the last used local directory"""
+        try:
+            config = Config.load_devices()
+            return config.get('last_local_directory', str(Path.home()))
+        except Exception:
+            return str(Path.home())
+    
+    @staticmethod
+    def save_last_local_directory(directory):
+        """Save the last used local directory"""
+        try:
+            config = Config.load_devices()
+            config['last_local_directory'] = directory
+            return Config.save_devices(config)
+        except Exception as e:
+            logger.error(f"Error saving last local directory: {str(e)}")
+            return False
 
 class CredentialManager:
     """Secure credential manager using keyring"""
@@ -455,7 +480,12 @@ class FileSystemModel:
         self.sftp = None
         self.transfer_manager = None
         self.remote_directory = None
-        self.local_directory = str(Path.home())
+        # Load last used local directory
+        last_dir = Config.get_last_local_directory()
+        if os.path.exists(last_dir) and os.path.isdir(last_dir):
+            self.local_directory = last_dir
+        else:
+            self.local_directory = str(Path.home())
         self.device_type = None
         self.device_name = None
         self._remote_disk_info = None
@@ -2060,6 +2090,9 @@ class FileTransfer:
         self.active_panel = 'local'
         self.sort_order_local = {'name': False, 'extension': False, 'date': False}
         self.sort_order_remote = {'name': False, 'extension': False, 'date': False}
+        # Store current sort key
+        self.current_sort_key_local = 'name'
+        self.current_sort_key_remote = 'name'
         self.local_selected_item = None
         self.remote_selected_item = None
         self.local_item_id_map = {}
@@ -2467,7 +2500,8 @@ class FileTransfer:
                     item_type
                 ))
             
-            self.sort_files('local', 'name')
+            # Apply current sort
+            self.sort_files('local', self.current_sort_key_local, preserve_order=True)
             self.update_disk_info()
             
         except FileNotFoundError:
@@ -2513,7 +2547,8 @@ class FileTransfer:
                     item_type
                 ))
             
-            self.sort_files('remote', 'name')
+            # Apply current sort
+            self.sort_files('remote', self.current_sort_key_remote, preserve_order=True)
             self.update_disk_info()
             
         except FileNotFoundError:
@@ -2537,21 +2572,28 @@ class FileTransfer:
         except Exception as e:
             messagebox.showerror("Error", f"Failed to load remote files: {str(e)}")
     
-    def sort_files(self, target, key):
+    def sort_files(self, target, key, preserve_order=False):
         """Sort file list by column"""
         if target == 'local':
             sort_order = self.sort_order_local
             file_list = self.file_list
             tree = self.local_tree
+            # Update current sort key
+            if not preserve_order:
+                self.current_sort_key_local = key
         elif target == 'remote':
             sort_order = self.sort_order_remote
             file_list = self.remote_file_list
             tree = self.remote_tree
+            # Update current sort key
+            if not preserve_order:
+                self.current_sort_key_remote = key
         else:
             return
         
-        # Toggle sort order
-        sort_order[key] = not sort_order[key]
+        # Toggle sort order only if not preserving order
+        if not preserve_order:
+            sort_order[key] = not sort_order[key]
         reverse = sort_order[key]
         
         # Separate parent directory from regular files
@@ -3570,12 +3612,8 @@ class FileTransfer:
             }
             
             # Add callbacks
-            transfer_manager.add_callback('progress', lambda task: progress_dialog.update_file_progress(
-                task.bytes_transferred, task.size, task.filename
-            ))
-            
-            transfer_manager.add_callback('file_complete', lambda task: progress_dialog.file_completed(task.size))
-            
+            transfer_manager.add_callback('progress', lambda task: progress_dialog.update_file_progress(task))
+            transfer_manager.add_callback('file_complete', lambda task: progress_dialog.file_completed(task))
             transfer_manager.add_callback('all_complete', lambda: self.on_transfer_complete(progress_dialog))
             
             # Add transfer tasks
@@ -3710,6 +3748,9 @@ class FileTransfer:
     
     def on_closing(self):
         """Handle application closing"""
+        # Save last local directory
+        Config.save_last_local_directory(self.model.local_directory)
+        
         # Disconnect from remote if connected
         if self.model.is_connected:
             self.model.disconnect()
