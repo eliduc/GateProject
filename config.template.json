@@ -1,0 +1,9 @@
+{
+    "rpi_host": "<IP address of Raspberry PI>",
+    "rpi_port": 22,
+    "rpi_user": "<user name>",
+    "rpi_password": "<password>",
+    "db_log_path": "/home/pi/GP/events.db",
+    "db_faces_path": "/home/pi/GP/people.db",
+    "sqlite_path": "/usr/bin/sqlite3"
+}
