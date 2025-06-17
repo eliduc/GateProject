@@ -1,0 +1,36 @@
+2025-06-17 18:04:26,043 - INFO - Using default Tk theme for testing dialog size
+2025-06-17 18:04:40,841 - INFO - Connecting to rb5c
+2025-06-17 18:04:41,114 - INFO - Connected (version 2.0, client OpenSSH_9.2p1)
+2025-06-17 18:04:41,195 - INFO - Authentication (password) successful!
+2025-06-17 18:04:41,196 - INFO - SSH connection successful
+2025-06-17 18:04:41,307 - INFO - [chan 0] Opened sftp connection (server version 3)
+2025-06-17 18:04:41,307 - INFO - SFTP session opened
+2025-06-17 18:04:41,313 - INFO - Directory listing successful
+2025-06-17 18:17:07,682 - INFO - [chan 0] sftp session closed.
+2025-06-17 18:17:07,685 - INFO - Disconnected from remote device
+2025-06-17 18:17:12,790 - INFO - Connecting to rb5b
+2025-06-17 18:17:12,828 - INFO - Connected (version 2.0, client OpenSSH_9.2p1)
+2025-06-17 18:17:12,904 - INFO - Authentication (password) successful!
+2025-06-17 18:17:12,904 - INFO - SSH connection successful
+2025-06-17 18:17:13,009 - INFO - [chan 0] Opened sftp connection (server version 3)
+2025-06-17 18:17:13,009 - INFO - SFTP session opened
+2025-06-17 18:17:13,019 - INFO - Directory listing successful
+2025-06-17 18:18:54,412 - INFO - [chan 0] sftp session closed.
+2025-06-17 18:18:54,412 - INFO - Disconnected from remote device
+2025-06-17 18:18:59,624 - INFO - Connecting to rb5c
+2025-06-17 18:18:59,852 - INFO - Connected (version 2.0, client OpenSSH_9.2p1)
+2025-06-17 18:18:59,932 - INFO - Authentication (password) successful!
+2025-06-17 18:18:59,932 - INFO - SSH connection successful
+2025-06-17 18:19:00,042 - INFO - [chan 0] Opened sftp connection (server version 3)
+2025-06-17 18:19:00,042 - INFO - SFTP session opened
+2025-06-17 18:19:00,052 - INFO - Directory listing successful
+2025-06-17 18:19:19,438 - INFO - [chan 0] sftp session closed.
+2025-06-17 18:19:19,439 - INFO - Disconnected from remote device
+2025-06-17 18:19:26,065 - INFO - Connecting to 192.168.2.44
+2025-06-17 18:19:26,185 - INFO - Connected (version 2.0, client OpenSSH_9.2p1)
+2025-06-17 18:19:26,340 - INFO - Authentication (password) successful!
+2025-06-17 18:19:26,341 - INFO - SSH connection successful
+2025-06-17 18:19:26,482 - INFO - [chan 0] Opened sftp connection (server version 3)
+2025-06-17 18:19:26,483 - INFO - SFTP session opened
+2025-06-17 18:19:26,545 - INFO - Directory listing successful
+2025-06-17 21:16:18,950 - INFO - [chan 0] sftp session closed.

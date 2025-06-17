@@ -1,14 +1,5 @@
-# Ignore everything
-**
+# Ignore everything in subdirectories
+*/
 
-# Un-ignore only root-level files (no folders or their contents)
-!/*
-
-# Re-ignore all files inside subdirectories
-**/*
-
-# Specifically ignore sensitive configuration file (exact match only)
+# Ignore the sensitive config in root
 /gpp.ini
-
-# Explicitly allow the template file
-!/gpp.template.ini
