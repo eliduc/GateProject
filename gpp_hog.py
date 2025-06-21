@@ -1,17 +1,3 @@
-# ==============================================================================
-# VERSION 2.0.2 CHANGES
-#
-# - Implemented a hybrid two-phase face recognition model (HOG -> CNN).
-# - Stage 1 uses the fast 'hog' model to detect potential faces on every frame.
-#   This keeps the system responsive and provides a visual cue (yellow box).
-# - Stage 2 triggers the accurate but slow 'cnn' model only after a face
-#   has been stable in the frame for a short duration.
-# - This approach balances performance and accuracy, preventing both false
-#   positives on objects and misidentification due to motion blur, which
-#   is ideal for embedded systems like the Raspberry Pi.
-# - Optimized by further reducing the processing frame resolution.
-# ==============================================================================
-
 import os
 os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = "hide"
 
@@ -36,8 +22,8 @@ from translations import get_translations_cached as load_translations, get_messa
 from TelegramButtons import telegram_button_handler
 from ControlSwitch import control_shelly_switch
 
-VERSION = "2.0.2"
-MODIFICATIONS = "Using mixed HOG->CNN model for performance and accuracy"
+VERSION = "2.0.0"
+MODIFICATIONS = "Unified GUI system using Pygame for seamless transitions"
 
 # Read configuration
 config = configparser.ConfigParser()
@@ -198,134 +184,183 @@ class UnifiedGateSystem:
         return 0
     
     def face_recognition_loop(self):
-        """
-        Face recognition loop with a two-phase (HOG -> CNN) approach for performance and reliability.
-        1. Fast 'hog' model runs on every frame to detect potential faces.
-        2. Once a face is stable for a moment, the accurate 'cnn' model is triggered
-           for a high-quality recognition to prevent misidentification of partial faces.
-        """
+        """Face recognition using pygame for display"""
         help_text_it_line1 = "Posiziona il tuo viso"
         help_text_it_line2 = "davanti alla telecamera"
         help_text_en_line1 = "Please position your face"
         help_text_en_line2 = "in front of the camera"
         
+        # Additional messages for when face is too far
         help_text_it_closer = "Avvicinati alla telecamera"
         help_text_en_closer = "Please come closer to the camera"
-
+        
+        face_not_detected_count = 0
+        max_no_face_count = 20  # Show message after ~2 seconds of no face detection (was 30)
+        
         font = self.get_font(int(self.screen_height / 30))
         name_font = self.get_font(int(self.screen_height / 20))
         
-        recognition_candidate_time = None
-        CONFIRMATION_DELAY = 0.7  # Delay in seconds for face stabilization
-        
-        # Optimization: Reduce the frame resolution further to increase speed.
-        # Note: fx/fy is now 0.2, so coordinates must be scaled back up by a factor of 5.
-        RESIZE_FACTOR = 0.2
-        SCALE_UP_FACTOR = 1 / RESIZE_FACTOR
-
-        # Clear camera buffer
+        # Clear camera buffer before starting
         for _ in range(10):
-            if self.video_capture.isOpened():
-                self.video_capture.read()
+            self.video_capture.read()
         
         while True:
             ret, frame = self.video_capture.read()
             if not ret:
                 continue
             
+            # Scale frame to fit screen
             frame = self.scale_frame_to_screen(frame)
+            
+            # Convert to RGB for face recognition
             rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            small_frame = cv2.resize(rgb_frame, (0, 0), fx=0.25, fy=0.25)
             
-            # A smaller frame for analysis
-            small_frame = cv2.resize(rgb_frame, (0, 0), fx=RESIZE_FACTOR, fy=RESIZE_FACTOR)
+            # Detect faces
+            face_locations = face_recognition.face_locations(small_frame, model='hog')
             
-            # STAGE 1: Fast detection with HOG on every frame
-            hog_face_locations = face_recognition.face_locations(small_frame, model='hog')
-            
+            # Convert frame to pygame surface
             frame_surface = pygame.surfarray.make_surface(rgb_frame.swapaxes(0, 1))
             self.screen.blit(frame_surface, (0, 0))
-
-            if not hog_face_locations:
-                # If no faces are found, reset the timer and show the help message
-                recognition_candidate_time = None
-                center_y = self.screen_height // 2; line_spacing = 35
-                text_surface = font.render(help_text_it_line1, True, (255, 255, 255)); text_rect = text_surface.get_rect(center=(self.screen_width // 2, center_y - line_spacing * 2)); self.screen.blit(text_surface, text_rect)
-                text_surface = font.render(help_text_it_line2, True, (255, 255, 255)); text_rect = text_surface.get_rect(center=(self.screen_width // 2, center_y - line_spacing)); self.screen.blit(text_surface, text_rect)
-                text_surface = font.render(help_text_en_line1, True, (200, 200, 200)); text_rect = text_surface.get_rect(center=(self.screen_width // 2, center_y + line_spacing)); self.screen.blit(text_surface, text_rect)
-                text_surface = font.render(help_text_en_line2, True, (200, 200, 200)); text_rect = text_surface.get_rect(center=(self.screen_width // 2, center_y + line_spacing * 2)); self.screen.blit(text_surface, text_rect)
+            
+            if not face_locations:
+                face_not_detected_count += 1
+                if face_not_detected_count > max_no_face_count:
+                    # Show help text
+                    center_y = self.screen_height // 2
+                    line_spacing = 35
+                    
+                    # Italian text
+                    text_surface = font.render(help_text_it_line1, True, (255, 255, 255))
+                    text_rect = text_surface.get_rect(center=(self.screen_width // 2, center_y - line_spacing * 2))
+                    self.screen.blit(text_surface, text_rect)
+                    
+                    text_surface = font.render(help_text_it_line2, True, (255, 255, 255))
+                    text_rect = text_surface.get_rect(center=(self.screen_width // 2, center_y - line_spacing))
+                    self.screen.blit(text_surface, text_rect)
+                    
+                    # English text
+                    text_surface = font.render(help_text_en_line1, True, (200, 200, 200))
+                    text_rect = text_surface.get_rect(center=(self.screen_width // 2, center_y + line_spacing))
+                    self.screen.blit(text_surface, text_rect)
+                    
+                    text_surface = font.render(help_text_en_line2, True, (200, 200, 200))
+                    text_rect = text_surface.get_rect(center=(self.screen_width // 2, center_y + line_spacing * 2))
+                    self.screen.blit(text_surface, text_rect)
             else:
-                # Face found! Draw a yellow "pending" box
-                for (top, right, bottom, left) in hog_face_locations:
-                    top *= SCALE_UP_FACTOR; right *= SCALE_UP_FACTOR; bottom *= SCALE_UP_FACTOR; left *= SCALE_UP_FACTOR
-                    pygame.draw.rect(self.screen, (255, 255, 0), (left, top, right - left, bottom - top), 2)
-
-                # Check if this is the first time the face is detected
-                if recognition_candidate_time is None:
-                    recognition_candidate_time = time.time()
-
-                # If the face has been stable in the frame for long enough
-                if time.time() - recognition_candidate_time > CONFIRMATION_DELAY:
-                    # STAGE 2: Trigger the accurate but slow CNN recognition
+                face_not_detected_count = 0
+                
+                # Check if face is too small (partial detection)
+                for face_location in face_locations:
+                    top, right, bottom, left = face_location
+                    face_height = (bottom - top) * 4  # Scale back up
+                    face_width = (right - left) * 4
                     
-                    # Display a "Scanning..." message
-                    scan_text_surface = name_font.render("Scanning...", True, (0, 255, 0))
-                    scan_text_rect = scan_text_surface.get_rect(center=(self.screen_width // 2, 50))
-                    self.screen.blit(scan_text_surface, scan_text_rect)
-                    pygame.display.flip()
-
-                    # Use CNN for the final, precise location
-                    cnn_face_locations = face_recognition.face_locations(small_frame, model='cnn')
-                    
-                    if not cnn_face_locations:
-                        # If CNN finds no face (HOG was wrong), reset the timer
-                        recognition_candidate_time = None
-                        continue
-
-                    face_encodings = face_recognition.face_encodings(small_frame, cnn_face_locations)
-                    face_encoding = face_encodings[0] # Take the first face found
-                    
+                    # If face is too small (less than 1/6 of screen height), show help text
+                    if face_height < self.screen_height / 6 or face_width < self.screen_width / 8:
+                        center_y = self.screen_height // 2
+                        line_spacing = 35
+                        
+                        # Semi-transparent background for better readability
+                        bg_surface = pygame.Surface((self.screen_width, line_spacing * 4))
+                        bg_surface.set_alpha(180)
+                        bg_surface.fill((0, 0, 0))
+                        self.screen.blit(bg_surface, (0, center_y - line_spacing * 2))
+                        
+                        # Italian text - "Come closer"
+                        text_surface = font.render(help_text_it_closer, True, (255, 255, 255))
+                        text_rect = text_surface.get_rect(center=(self.screen_width // 2, center_y - line_spacing))
+                        self.screen.blit(text_surface, text_rect)
+                        
+                        # English text - "Come closer"
+                        text_surface = font.render(help_text_en_closer, True, (200, 200, 200))
+                        text_rect = text_surface.get_rect(center=(self.screen_width // 2, center_y + line_spacing))
+                        self.screen.blit(text_surface, text_rect)
+                
+                # Process faces
+                face_encodings = face_recognition.face_encodings(small_frame, face_locations)
+                
+                for face_encoding, face_location in zip(face_encodings, face_locations):
+                    # Match face
                     matches = face_recognition.compare_faces(self.known_face_encodings, face_encoding, tolerance=0.5)
-                    recognized_id = "Stranger"
+                    
+                    recognized_id = None
                     if True in matches:
                         face_distances = face_recognition.face_distance(self.known_face_encodings, face_encoding)
                         best_match_index = np.argmin(face_distances)
                         if matches[best_match_index]:
                             recognized_id = str(self.known_face_ids[best_match_index])
+                    else:
+                        recognized_id = "Stranger"
                     
                     if recognized_id:
-                        (top, right, bottom, left) = cnn_face_locations[0]
-                        top *= SCALE_UP_FACTOR; right *= SCALE_UP_FACTOR; bottom *= SCALE_UP_FACTOR; left *= SCALE_UP_FACTOR
+                        # Scale face location
+                        top, right, bottom, left = face_location
+                        top *= 4
+                        right *= 4
+                        bottom *= 4
+                        left *= 4
+                        
+                        # Draw rectangle
                         pygame.draw.rect(self.screen, (0, 255, 0), (left, top, right - left, bottom - top), 2)
                         
-                        if recognized_id == "Stranger": text = "Hello, Stranger"
+                        # Get person name
+                        if recognized_id == "Stranger":
+                            text = "Hello, Stranger"
                         else:
-                            conn = sqlite3.connect('people.db'); c = conn.cursor()
-                            c.execute("SELECT name FROM persons WHERE id = ?", (recognized_id,)); result = c.fetchone(); conn.close()
-                            if result: text = f"Hello, {result[0]}"
-                            else: text = f"Hello, ID: {recognized_id}"
+                            conn = sqlite3.connect('people.db')
+                            c = conn.cursor()
+                            c.execute("SELECT name FROM persons WHERE id = ?", (recognized_id,))
+                            result = c.fetchone()
+                            conn.close()
+                            
+                            if result:
+                                text = f"Hello, {result[0]}"
+                            else:
+                                text = f"Hello, ID: {recognized_id}"
                         
+                        # Display name
                         text_surface = name_font.render(text, True, (0, 255, 0))
                         text_rect = text_surface.get_rect(center=(self.screen_width // 2, 50))
                         self.screen.blit(text_surface, text_rect)
-                        pygame.display.flip()
-                        pygame.time.wait(1000)
                         
+                        pygame.display.flip()
+                        pygame.time.wait(1000)  # Increased from 500ms to 1 second
+                        
+                        # Save screenshot
                         pygame.image.save(self.screen, "face.jpg")
                         
+                        # Flash effect
                         for _ in range(3):
-                            brightness = pygame.Surface((self.screen_width, self.screen_height)); brightness.set_alpha(64); brightness.fill((0, 0, 0)); self.screen.blit(brightness, (0, 0)); pygame.display.flip(); pygame.time.wait(200)
-                            self.screen.blit(frame_surface, (0, 0)); pygame.draw.rect(self.screen, (0, 255, 0), (left, top, right - left, bottom - top), 2); self.screen.blit(text_surface, text_rect); pygame.display.flip(); pygame.time.wait(200)
+                            brightness = pygame.Surface((self.screen_width, self.screen_height))
+                            brightness.set_alpha(64)
+                            brightness.fill((0, 0, 0))
+                            self.screen.blit(brightness, (0, 0))
+                            pygame.display.flip()
+                            pygame.time.wait(200)
+                            
+                            self.screen.blit(frame_surface, (0, 0))
+                            pygame.draw.rect(self.screen, (0, 255, 0), (left, top, right - left, bottom - top), 2)
+                            self.screen.blit(text_surface, text_rect)
+                            pygame.display.flip()
+                            pygame.time.wait(200)
                         
+                        # Clear camera buffer before returning
                         for _ in range(5):
-                            if self.video_capture.isOpened(): self.video_capture.read()
+                            if self.video_capture.isOpened():
+                                self.video_capture.read()
                         
                         return recognized_id
-
+            
             pygame.display.flip()
             
+            # Check for quit
             for event in pygame.event.get():
-                if event.type == pygame.QUIT or (event.type == pygame.KEYDOWN and event.key == pygame.K_q):
+                if event.type == pygame.QUIT:
                     return None
+                elif event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_q:
+                        return None
             
             self.clock.tick(30)
     
