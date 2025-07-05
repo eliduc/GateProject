@@ -351,6 +351,8 @@ class UnifiedGateSystem:
         """Show keyboard using pygame"""
         translations = load_translations('gate_project_translations.md', user_lang)
         
+        pygame.mouse.set_visible(False)
+        
         # Keyboard state
         entered_code = ""
         attempts = max_attempts
@@ -593,6 +595,7 @@ class UnifiedGateSystem:
                                 running = False
             
             self.clock.tick(30)
+            pygame.mouse.set_visible(True)
         
         return result
     
