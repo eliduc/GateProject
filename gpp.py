@@ -595,7 +595,7 @@ class UnifiedGateSystem:
                                 running = False
             
             self.clock.tick(30)
-            pygame.mouse.set_visible(True)
+        pygame.mouse.set_visible(True)
         
         return result
     
